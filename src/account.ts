@@ -1,4 +1,4 @@
-import { fetch } from 'cross-fetch';
+// import { fetch } from 'cross-fetch';
 import getLogger from 'debug';
 
 import { fetchAddressBooks, fetchVCards } from './addressBook';
@@ -8,6 +8,8 @@ import { propfind } from './request';
 import { DAVAccount } from './types/models';
 import { urlContains } from './util/requestHelpers';
 import { findMissingFieldNames, hasFields } from './util/typeHelpers';
+
+const DigestFetch = require('digest-fetch');
 
 const debug = getLogger('tsdav:account');
 
@@ -23,11 +25,19 @@ export const serviceDiscovery = async (params: {
   uri.protocol = endpoint.protocol ?? 'http';
 
   try {
-    const response = await fetch(uri.href, {
+    // For Basic auth
+    // const response = await fetch(uri.href, {
+    //   headers,
+    //   method: 'PROPFIND',
+    //   redirect: 'manual',
+    // });
+
+    const client = new DigestFetch(account!.credentials!.username, account!.credentials!.password, { algorithm: 'MD5' });
+    const response = await client.fetch(uri.href, {
       headers,
       method: 'PROPFIND',
-      redirect: 'manual',
-    });
+      redirect: 'manual'
+    })
 
     if (response.status >= 300 && response.status < 400) {
       // http redirect.
@@ -70,6 +80,7 @@ export const fetchPrincipalUrl = async (params: {
     },
     depth: '0',
     headers,
+    account
   });
   if (!response.ok) {
     debug(`Fetch principal url failed: ${response.statusText}`);
@@ -102,6 +113,7 @@ export const fetchHomeUrl = async (params: {
         : { [`${DAVNamespaceShort.CARDDAV}:addressbook-home-set`]: {} },
     depth: '0',
     headers,
+    account
   });
 
   const matched = responses.find((r) => urlContains(account.principalUrl, r.href));
@@ -130,6 +142,7 @@ export const createAccount = async (params: {
   newAccount.rootUrl = await serviceDiscovery({ account, headers });
   newAccount.principalUrl = await fetchPrincipalUrl({ account: newAccount, headers });
   newAccount.homeUrl = await fetchHomeUrl({ account: newAccount, headers });
+
   // to load objects you must first load collections
   if (loadCollections || loadObjects) {
     if (account.accountType === 'caldav') {
@@ -143,7 +156,7 @@ export const createAccount = async (params: {
       newAccount.calendars = await Promise.all(
         newAccount.calendars.map(async (cal) => ({
           ...cal,
-          objects: await fetchCalendarObjects({ calendar: cal, headers }),
+          objects: await fetchCalendarObjects({ calendar: cal, headers, account: newAccount }),
         }))
       );
     } else if (account.accountType === 'carddav' && newAccount.addressBooks) {

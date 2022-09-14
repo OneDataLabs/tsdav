@@ -4,9 +4,12 @@ import convert, { ElementCompact } from 'xml-js';
 
 import { DAVNamespace, DAVNamespaceShort } from './consts';
 import { DAVDepth, DAVRequest, DAVResponse } from './types/DAVTypes';
+import { DAVAccount } from './types/models';
 import { camelCase } from './util/camelCase';
 import { nativeType } from './util/nativeType';
 import { cleanupFalsy, getDAVAttribute } from './util/requestHelpers';
+
+const DigestFetch = require('digest-fetch');
 
 const debug = getLogger('tsdav:request');
 
@@ -23,10 +26,11 @@ type RawResponse = {
 export const davRequest = async (params: {
   url: string;
   init: DAVRequest;
+  account?: DAVAccount;
   convertIncoming?: boolean;
   parseOutgoing?: boolean;
 }): Promise<DAVResponse[]> => {
-  const { url, init, convertIncoming = true, parseOutgoing = true } = params;
+  const { url, init, account, convertIncoming = true, parseOutgoing = true } = params;
   const { headers, body, namespace, method, attributes } = init;
   const xmlBody = convertIncoming
     ? convert.js2xml(
@@ -49,35 +53,18 @@ export const davRequest = async (params: {
       )
     : body;
 
-  // debug('outgoing xml:');
-  // debug(`${method} ${url}`);
-  // debug(
-  //   `headers: ${JSON.stringify(
-  //     {
-  //       'Content-Type': 'text/xml;charset=UTF-8',
-  //       ...cleanupFalsy(headers),
-  //     },
-  //     null,
-  //     2
-  //   )}`
-  // );
-  // debug(xmlBody);
-
-  const davResponse = await fetch(url, {
+  // For Digest auth
+  const client = new DigestFetch(account!.credentials!.username, account!.credentials!.password, { algorithm: 'MD5' });
+  const davResponse = await client.fetch(url, {
     headers: {
-      'Content-Type': 'text/xml;charset=UTF-8',
-      ...cleanupFalsy(headers),
+      'Content-Type': 'application/xml; charset=utf-8'
     },
     body: xmlBody,
-    method,
-  });
+    method
+  })
 
   const resText = await davResponse.text();
 
-  // filter out invalid responses
-  // debug('response xml:');
-  // debug(resText);
-  // debug(davResponse);
   if (
     !davResponse.ok ||
     !davResponse.headers.get('content-type')?.includes('xml') ||
@@ -170,8 +157,9 @@ export const propfind = async (params: {
   props: ElementCompact;
   depth?: DAVDepth;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<DAVResponse[]> => {
-  const { url, props, depth, headers } = params;
+  const { url, props, depth, headers, account } = params;
   return davRequest({
     url,
     init: {
@@ -191,6 +179,7 @@ export const propfind = async (params: {
         },
       },
     },
+    account
   });
 };
 
@@ -198,9 +187,11 @@ export const createObject = async (params: {
   url: string;
   data: BodyInit;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<Response> => {
-  const { url, data, headers } = params;
-  return fetch(url, { method: 'PUT', body: data, headers });
+  const { url, data, headers, account } = params;
+  const client = new DigestFetch(account!.credentials!.username, account!.credentials!.password, { algorithm: 'MD5' });
+  return client.fetch(url, { method: 'PUT', body: data, headers });
 };
 
 export const updateObject = async (params: {
@@ -208,9 +199,11 @@ export const updateObject = async (params: {
   data: BodyInit;
   etag?: string;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<Response> => {
-  const { url, data, etag, headers } = params;
-  return fetch(url, {
+  const { url, data, etag, headers, account } = params;
+  const client = new DigestFetch(account!.credentials!.username, account!.credentials!.password, { algorithm: 'MD5' });
+  return client.fetch(url, {
     method: 'PUT',
     body: data,
     headers: cleanupFalsy({ 'If-Match': etag, ...headers }),
@@ -221,9 +214,11 @@ export const deleteObject = async (params: {
   url: string;
   etag?: string;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<Response> => {
-  const { url, headers, etag } = params;
-  return fetch(url, {
+  const { url, headers, etag, account } = params;
+  const client = new DigestFetch(account!.credentials!.username, account!.credentials!.password, { algorithm: 'MD5' });
+  return client.fetch(url, {
     method: 'DELETE',
     headers: cleanupFalsy({ 'If-Match': etag, ...headers }),
   });

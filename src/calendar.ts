@@ -20,8 +20,9 @@ export const calendarQuery = async (params: {
   timezone?: string;
   depth?: DAVDepth;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<DAVResponse[]> => {
-  const { url, props, filters, timezone, depth, headers } = params;
+  const { url, props, filters, timezone, depth, headers, account } = params;
   return collectionQuery({
     url,
     body: {
@@ -40,6 +41,7 @@ export const calendarQuery = async (params: {
     defaultNamespace: DAVNamespaceShort.CALDAV,
     depth,
     headers,
+    account
   });
 };
 
@@ -51,8 +53,9 @@ export const calendarMultiGet = async (params: {
   timezone?: string;
   depth: DAVDepth;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<DAVResponse[]> => {
-  const { url, props, objectUrls, filters, timezone, depth, headers } = params;
+  const { url, props, objectUrls, filters, timezone, depth, headers, account } = params;
   return collectionQuery({
     url,
     body: {
@@ -67,6 +70,7 @@ export const calendarMultiGet = async (params: {
     defaultNamespace: DAVNamespaceShort.CALDAV,
     depth,
     headers,
+    account
   });
 };
 
@@ -75,8 +79,9 @@ export const makeCalendar = async (params: {
   props: ElementCompact;
   depth?: DAVDepth;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<DAVResponse[]> => {
-  const { url, props, depth, headers } = params;
+  const { url, props, depth, headers, account } = params;
   return davRequest({
     url,
     init: {
@@ -96,6 +101,7 @@ export const makeCalendar = async (params: {
         },
       },
     },
+    account
   });
 };
 
@@ -129,6 +135,7 @@ export const fetchCalendars = async (params?: {
     },
     depth: '1',
     headers,
+    account
   });
 
   return Promise.all(
@@ -163,7 +170,7 @@ export const fetchCalendars = async (params?: {
       })
       .map(async (cal) => ({
         ...cal,
-        reports: await supportedReportSet({ collection: cal, headers }),
+        reports: await supportedReportSet({ collection: cal, headers, account }),
       }))
   );
 };
@@ -176,15 +183,17 @@ export const fetchCalendarObjects = async (params: {
   expand?: boolean;
   urlFilter?: (url: string) => boolean;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<DAVCalendarObject[]> => {
   const {
     calendar,
     objectUrls,
     filters: customFilters,
     timeRange,
-    headers,
     expand,
     urlFilter,
+    headers,
+    account
   } = params;
 
   if (timeRange) {
@@ -273,6 +282,7 @@ export const fetchCalendarObjects = async (params: {
         filters,
         depth: '1',
         headers,
+        account
       })
     ).map((res) => res.href ?? '')
   )
@@ -310,6 +320,7 @@ export const fetchCalendarObjects = async (params: {
         filters,
         depth: '1',
         headers,
+        account
       });
     } else {
       calendarObjectResults = await calendarMultiGet({
@@ -338,6 +349,7 @@ export const fetchCalendarObjects = async (params: {
         objectUrls: calendarObjectUrls,
         depth: '1',
         headers,
+        account
       });
     }
   }
@@ -354,8 +366,9 @@ export const createCalendarObject = async (params: {
   iCalString: string;
   filename: string;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<Response> => {
-  const { calendar, iCalString, filename, headers } = params;
+  const { calendar, iCalString, filename, headers, account } = params;
   return createObject({
     url: new URL(filename, calendar.url).href,
     data: iCalString,
@@ -364,14 +377,16 @@ export const createCalendarObject = async (params: {
       'If-None-Match': '*',
       ...headers,
     },
+    account
   });
 };
 
 export const updateCalendarObject = async (params: {
   calendarObject: DAVCalendarObject;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<Response> => {
-  const { calendarObject, headers } = params;
+  const { calendarObject, headers, account } = params;
   return updateObject({
     url: calendarObject.url,
     data: calendarObject.data,
@@ -380,15 +395,17 @@ export const updateCalendarObject = async (params: {
       'content-type': 'text/calendar; charset=utf-8',
       ...headers,
     },
+    account
   });
 };
 
 export const deleteCalendarObject = async (params: {
   calendarObject: DAVCalendarObject;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<Response> => {
-  const { calendarObject, headers } = params;
-  return deleteObject({ url: calendarObject.url, etag: calendarObject.etag, headers });
+  const { calendarObject, headers, account } = params;
+  return deleteObject({ url: calendarObject.url, etag: calendarObject.etag, headers, account });
 };
 
 /**
@@ -400,7 +417,7 @@ export const syncCalendars: SyncCalendars = async (params: {
   account?: DAVAccount;
   detailedResult?: boolean;
 }): Promise<any> => {
-  const { oldCalendars, account, detailedResult, headers } = params;
+  const { oldCalendars, headers, account, detailedResult } = params;
   if (!account) {
     throw new Error('Must have account before syncCalendars');
   }

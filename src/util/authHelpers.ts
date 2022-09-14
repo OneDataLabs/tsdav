@@ -1,5 +1,6 @@
 import { encode } from 'base-64';
 import { fetch } from 'cross-fetch';
+const DigestFetch = require('digest-fetch');
 import getLogger from 'debug';
 
 import { DAVTokens } from '../types/DAVTypes';
@@ -138,6 +139,26 @@ export const getOauthHeaders = async (
     tokens,
     headers: {
       authorization: `Bearer ${tokens.access_token}`,
+    },
+  };
+};
+
+export const getDigestHeaders = async (
+  credentials: DAVCredentials
+): Promise<{ headers: { authorization?: string } }> => {
+  debug('Fetching digest headers');
+  
+  const response = await fetch(credentials.tokenUrl!, {
+    method: 'GET'
+  });
+
+  const client = new DigestFetch(credentials.username, credentials.password, { algorithm: 'MD5' });
+  await client.parseAuth(response.headers.get('www-authenticate'));
+  const options = client.addAuth(credentials.tokenUrl, {});
+
+  return {
+    headers: {
+      authorization: options.headers.Authorization
     },
   };
 };

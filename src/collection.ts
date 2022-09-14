@@ -18,8 +18,9 @@ export const collectionQuery = async (params: {
   depth?: DAVDepth;
   defaultNamespace?: DAVNamespaceShort;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<DAVResponse[]> => {
-  const { url, body, depth, defaultNamespace = DAVNamespaceShort.DAV, headers } = params;
+  const { url, body, depth, defaultNamespace = DAVNamespaceShort.DAV, headers, account } = params;
   const queryResults = await davRequest({
     url,
     init: {
@@ -28,6 +29,7 @@ export const collectionQuery = async (params: {
       namespace: defaultNamespace,
       body,
     },
+    account
   });
 
   // empty query result
@@ -43,8 +45,9 @@ export const makeCollection = async (params: {
   props?: ElementCompact;
   depth?: DAVDepth;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<DAVResponse[]> => {
-  const { url, props, depth, headers } = params;
+  const { url, props, depth, headers, account } = params;
   return davRequest({
     url,
     init: {
@@ -61,14 +64,16 @@ export const makeCollection = async (params: {
           }
         : undefined,
     },
+    account
   });
 };
 
 export const supportedReportSet = async (params: {
   collection: DAVCollection;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<string[]> => {
-  const { collection, headers } = params;
+  const { collection, headers, account } = params;
   const res = await propfind({
     url: collection.url,
     props: {
@@ -76,6 +81,7 @@ export const supportedReportSet = async (params: {
     },
     depth: '0',
     headers,
+    account
   });
   return (
     res[0]?.props?.supportedReportSet?.supportedReport?.map(
@@ -87,11 +93,12 @@ export const supportedReportSet = async (params: {
 export const isCollectionDirty = async (params: {
   collection: DAVCollection;
   headers?: Record<string, string>;
+  account?: DAVAccount;
 }): Promise<{
   isDirty: boolean;
   newCtag: string;
 }> => {
-  const { collection, headers } = params;
+  const { collection, headers, account } = params;
   const responses = await propfind({
     url: collection.url,
     props: {
@@ -99,6 +106,7 @@ export const isCollectionDirty = async (params: {
     },
     depth: '0',
     headers,
+    account
   });
   const res = responses.filter((r) => urlContains(collection.url, r.href))[0];
   if (!res) {
@@ -117,10 +125,11 @@ export const syncCollection = (params: {
   url: string;
   props: ElementCompact;
   headers?: Record<string, string>;
+  account?: DAVAccount;
   syncLevel?: number;
   syncToken?: string;
 }): Promise<DAVResponse[]> => {
-  const { url, props, headers, syncLevel, syncToken } = params;
+  const { url, props, headers, account, syncLevel, syncToken } = params;
   return davRequest({
     url,
     init: {
@@ -140,6 +149,7 @@ export const syncCollection = (params: {
         },
       },
     },
+    account
   });
 };
 

@@ -292,67 +292,96 @@ export const fetchCalendarObjects = async (params: {
 
   let calendarObjectResults: DAVResponse[] = [];
 
-  if (calendarObjectUrls.length > 0) {
-    if (expand) {
-      calendarObjectResults = await calendarQuery({
-        url: calendar.url,
-        props: {
-          [`${DAVNamespaceShort.DAV}:getetag`]: {},
-          [`${DAVNamespaceShort.CALDAV}:calendar-data`]: {
-            ...(expand && timeRange
-              ? {
-                  [`${DAVNamespaceShort.CALDAV}:expand`]: {
-                    _attributes: {
-                      start: `${new Date(timeRange.start)
-                        .toISOString()
-                        .slice(0, 19)
-                        .replace(/[-:.]/g, '')}Z`,
-                      end: `${new Date(timeRange.end)
-                        .toISOString()
-                        .slice(0, 19)
-                        .replace(/[-:.]/g, '')}Z`,
-                    },
-                  },
-                }
-              : {}),
-          },
-        },
-        filters,
-        depth: '1',
-        headers,
-        account
-      });
-    } else {
-      calendarObjectResults = await calendarMultiGet({
-        url: calendar.url,
-        props: {
-          [`${DAVNamespaceShort.DAV}:getetag`]: {},
-          [`${DAVNamespaceShort.CALDAV}:calendar-data`]: {
-            ...(expand && timeRange
-              ? {
-                  [`${DAVNamespaceShort.CALDAV}:expand`]: {
-                    _attributes: {
-                      start: `${new Date(timeRange.start)
-                        .toISOString()
-                        .slice(0, 19)
-                        .replace(/[-:.]/g, '')}Z`,
-                      end: `${new Date(timeRange.end)
-                        .toISOString()
-                        .slice(0, 19)
-                        .replace(/[-:.]/g, '')}Z`,
-                    },
-                  },
-                }
-              : {}),
-          },
-        },
-        objectUrls: calendarObjectUrls,
-        depth: '1',
-        headers,
-        account
-      });
-    }
-  }
+  // if (calendarObjectUrls.length > 0) {
+  //   if (expand) {
+  //     calendarObjectResults = await calendarQuery({
+  //       url: calendar.url,
+  //       props: {
+  //         [`${DAVNamespaceShort.DAV}:getetag`]: {},
+  //         [`${DAVNamespaceShort.CALDAV}:calendar-data`]: {
+  //           ...(expand && timeRange
+  //             ? {
+  //                 [`${DAVNamespaceShort.CALDAV}:expand`]: {
+  //                   _attributes: {
+  //                     start: `${new Date(timeRange.start)
+  //                       .toISOString()
+  //                       .slice(0, 19)
+  //                       .replace(/[-:.]/g, '')}Z`,
+  //                     end: `${new Date(timeRange.end)
+  //                       .toISOString()
+  //                       .slice(0, 19)
+  //                       .replace(/[-:.]/g, '')}Z`,
+  //                   },
+  //                 },
+  //               }
+  //             : {}),
+  //         },
+  //       },
+  //       filters,
+  //       depth: '1',
+  //       headers,
+  //       account
+  //     });
+  //   } else {
+  //     calendarObjectResults = await calendarMultiGet({
+  //       url: calendar.url,
+  //       props: {
+  //         [`${DAVNamespaceShort.DAV}:getetag`]: {},
+  //         [`${DAVNamespaceShort.CALDAV}:calendar-data`]: {
+  //           ...(expand && timeRange
+  //             ? {
+  //                 [`${DAVNamespaceShort.CALDAV}:expand`]: {
+  //                   _attributes: {
+  //                     start: `${new Date(timeRange.start)
+  //                       .toISOString()
+  //                       .slice(0, 19)
+  //                       .replace(/[-:.]/g, '')}Z`,
+  //                     end: `${new Date(timeRange.end)
+  //                       .toISOString()
+  //                       .slice(0, 19)
+  //                       .replace(/[-:.]/g, '')}Z`,
+  //                   },
+  //                 },
+  //               }
+  //             : {}),
+  //         },
+  //       },
+  //       objectUrls: calendarObjectUrls,
+  //       depth: '1',
+  //       headers,
+  //       account
+  //     });
+  //   }
+  // }
+
+  calendarObjectResults = await calendarQuery({
+    url: calendar.url,
+    props: {
+      [`${DAVNamespaceShort.DAV}:getetag`]: {},
+      [`${DAVNamespaceShort.CALDAV}:calendar-data`]: {
+        ...(expand && timeRange
+          ? {
+              [`${DAVNamespaceShort.CALDAV}:expand`]: {
+                _attributes: {
+                  start: `${new Date(timeRange.start)
+                    .toISOString()
+                    .slice(0, 19)
+                    .replace(/[-:.]/g, '')}Z`,
+                  end: `${new Date(timeRange.end)
+                    .toISOString()
+                    .slice(0, 19)
+                    .replace(/[-:.]/g, '')}Z`,
+                },
+              },
+            }
+          : {}),
+      },
+    },
+    filters,
+    depth: '1',
+    headers,
+    account
+  });
 
   return calendarObjectResults.map((res) => ({
     url: new URL(res.href ?? '', calendar.url).href,

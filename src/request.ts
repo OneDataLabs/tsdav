@@ -53,12 +53,14 @@ export const davRequest = async (params: {
       )
     : body;
 
+  const clientHeaders = headers?.depth
+    ? { 'Content-Type': 'application/xml; charset=utf-8', 'Depth': headers.depth } 
+    : { 'Content-Type': 'application/xml; charset=utf-8' } 
+
   // For Digest auth
   const client = new DigestFetch(account!.credentials!.username, account!.credentials!.password, { algorithm: 'MD5' });
   const davResponse = await client.fetch(url, {
-    headers: {
-      'Content-Type': 'application/xml; charset=utf-8'
-    },
+    headers: clientHeaders,
     body: xmlBody,
     method
   })
